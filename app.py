@@ -11,13 +11,25 @@ def open_browser_session() -> None:
     password = os.getenv("PASS")
     browser = webdriver.Chrome()
     browser.get(url)
-    browser.implicitly_wait(1)
+    browser.implicitly_wait(5)
     email_input = browser.find_element(by=By.ID, value="inputEmail3")
     password_input = browser.find_element(by=By.ID, value="inputPassword3")
     submit = browser.find_element(by=By.CLASS_NAME, value="btn")
     email_input.send_keys(email)
     password_input.send_keys(password)
     submit.click()
+    browser.implicitly_wait(2)
+    browser.get(f"{url}/#/contractsB2C/accredited")
+    browser.implicitly_wait(3)
+    credentials = browser.find_element(by=By.TAG_NAME, value="tbody")
+    credentials_table = credentials.find_elements(by=By.TAG_NAME, value="tr")
+    for credential in credentials_table:
+        edit_btn = credential.find_element(by=By.CLASS_NAME, value="btn-primary")
+        edit_btn.click()
+        nav_button = browser.find_element(by=By.LINK_TEXT, value="PORTADORES")
+        nav_button.click()
+        select = browser.find_element(by=By.TAG_NAME, value="select")
+
 
 
 open_browser_session()
