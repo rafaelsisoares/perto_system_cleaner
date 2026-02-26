@@ -3,7 +3,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
 from dotenv import load_dotenv
 from time import sleep
 import os
@@ -42,10 +41,17 @@ def open_browser_session() -> None:
         select = Select(select_menu)
         options = [
             o.get_attribute("textContent").strip() for o in select.options]
-        print(options)
         select.select_by_visible_text(options[1])
-        users_table = hold.until(
-            EC.visibility_of_element_located((By.TAG_NAME, "tbody")))
+        path = "//table[@id='exportable']//tbody//tr"
+        hold.until(lambda d: len(d.find_elements(By.XPATH, path)) > 1)
+        users_table = browser.find_elements(by=By.XPATH, value=path)
+        users_table.pop(0)
+        for user in users_table:
+            btn_container = user.find_elements(by=By.TAG_NAME, value="td")[-1]
+            edit = btn_container.find_element(by=By.CLASS_NAME, value="btn-primary")
+            print(edit.get_attribute("outerHTML"))
+            browser.execute_script("arguments[0].click();", edit)
+            sleep(5)
 
 
 open_browser_session()
