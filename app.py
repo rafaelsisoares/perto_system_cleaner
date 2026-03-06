@@ -73,10 +73,15 @@ def open_browser_session() -> None:
                 if len(registers) > 0:
                     for register in registers:
                         data = register.find_elements(by=By.TAG_NAME, value="td")
-                        print(data[0].get_attribute("textContent"))
                         if data[0].get_attribute("textContent") == "CÓDIGO DE BARRAS":
-                            print("Este registro será excluido")
-                        print("Este registro sera preservado")
+                            btn_remove = data[-1].find_element(by=By.CLASS_NAME, value="btn-danger")
+                            btn_remove.click()
+                            try:
+                                registers_table = hold.until(EC.visibility_of_element_located((By.TAG_NAME, "tbody")))
+                                registers = registers_table.find_elements(by=By.TAG_NAME, value="tr")
+                            except TimeoutException:
+                                continue
+                        sleep(2)
                 browser.execute_script("arguments[0].click();", close)
                 hold.until(EC.invisibility_of_element_located(pop_up))
             if int(num_pages) > 1:
