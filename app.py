@@ -14,7 +14,7 @@ def open_browser_session() -> None:
     load_dotenv()
     browser_options = Options()
     browser_options.add_argument("start-maximized")
-    browser_options.add_argument("--disable-notifications")
+    browser_options.add_argument("--disable-web-security")
     url = os.getenv("URL")
     email = os.getenv("EMAIL")
     password = os.getenv("PASS")
@@ -78,10 +78,10 @@ def open_browser_session() -> None:
                             btn_remove.click()
                             try:
                                 registers_table = hold.until(EC.visibility_of_element_located((By.TAG_NAME, "tbody")))
-                                registers = registers_table.find_elements(by=By.TAG_NAME, value="tr")
                             except TimeoutException:
                                 continue
-                        sleep(2)
+                            registers = registers_table.find_elements(by=By.TAG_NAME, value="tr")
+                        # sleep(2)
                 browser.execute_script("arguments[0].click();", close)
                 hold.until(EC.invisibility_of_element_located(pop_up))
             if int(num_pages) > 1:
@@ -94,6 +94,9 @@ def open_browser_session() -> None:
         sleep(3)
         credentials = hold.until(EC.visibility_of_element_located((By.TAG_NAME, "tbody")))
         credentials_table = credentials.find_elements(by=By.TAG_NAME, value="tr")
+    print("Limpeza concluida")
+    browser.quit()
+
 
 if __name__ == "__main__":
     open_browser_session()
