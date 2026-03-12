@@ -1,0 +1,4 @@
+# Arquivo para instalar as dependencias necessarias para o funcionamento do script
+
+selenium==4.41.0
+python-dotenv==1.2.1
