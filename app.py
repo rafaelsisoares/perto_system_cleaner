@@ -5,9 +5,62 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.remote.webelement import WebElement
 from dotenv import load_dotenv
 from time import sleep
+from typing import List
 import os
+
+
+class SystemCleaner:
+    def __init__(self, browser) -> None:
+        load_dotenv()
+        self.__browser = browser
+        self.__wait = WebDriverWait(self.__browser, timeout=15)
+        self.__url = os.getenv("URL")
+        self.__email = os.getenv("EMAIL")
+        self.__password = os.getenv("PASS")
+
+    def __loop_in_credentials(self, credentials: List[WebElement]):
+        for credential in credentials:
+            credential.find_element(
+                by=By.CLASS_NAME, value="btn-primary"
+            ).click()
+
+    def __go_to_credentials(self) -> None:
+        aside_menu = self.__wait.until(EC.visibility_of_element_located(
+            (By.TAG_NAME, "aside")
+        ))
+
+        aside_menu.find_element(
+            by=By.LINK_TEXT, value="Contr. Credenciados"
+        ).click()
+
+        self.__wait.until(EC.visibility_of_element_located(
+            (By.LINK_TEXT, "Credenciado")
+        )).click()
+
+        credentials = self.__wait.until(EC.visibility_of_element_located(
+            (By.TAG_NAME, "tbody")
+        ))
+        sleep(2)
+        self.__loop_in_credentials(
+            credentials.find_elements(by=By.TAG_NAME, value="tr")
+        )
+
+    def start(self) -> None:
+        self.__browser.get(self.__url)
+        self.__wait.until(EC.visibility_of_element_located(
+            (By.ID, "inputEmail3")
+        )).send_keys(self.__email)
+
+        self.__browser.find_element(
+            by=By.ID, value="inputPassword3"
+        ).send_keys(self.__password)
+
+        self.__browser.find_element(by=By.CLASS_NAME, value="btn").click()
+
+        self.__go_to_credentials()
 
 
 def open_browser_session() -> None:
@@ -99,4 +152,9 @@ def open_browser_session() -> None:
 
 
 if __name__ == "__main__":
-    open_browser_session()
+    # open_browser_session()
+    browser_options = Options()
+    browser_options.add_argument("--disable-notifications")
+    browser = webdriver.Chrome(options=browser_options)
+    system_cleaner = SystemCleaner(browser)
+    system_cleaner.start()
