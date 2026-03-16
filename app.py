@@ -12,6 +12,8 @@ from time import sleep
 from typing import List
 import os
 
+BAR_CODE = "CÓDIGO DE BARRAS"
+
 
 class SystemCleaner:
     def __init__(self, browser: WebDriver) -> None:
@@ -24,7 +26,37 @@ class SystemCleaner:
         self.__option = os.getenv("OPTION")
 
     def __loop_in_users(self, table: List[WebElement]) -> None:
-        pass
+        for user in table:
+            btn_container = user.find_elements(By.TAG_NAME, "td")[-1]
+            edit = btn_container.find_element(
+                By.CLASS_NAME, "btn-primary"
+            )
+            self.__browser.execute_script(
+                "arguments[0].click();", edit
+            )
+            modal = self.__wait.until(EC.visibility_of_element_located(
+                (By.CLASS_NAME, "modal-content")
+            ))
+            btn_close = modal.find_element(By.CLASS_NAME, "btn-warning")
+            try:
+                registers_table = self.__wait.until(EC.visibility_of_element_located(
+                    (By.TAG_NAME, "tbody")
+                ))
+            except TimeoutException:
+                self.__browser.execute_script(
+                    "arguments[0].click();", btn_close
+                )
+                continue
+
+            registers = registers_table.find_elements(By.TAG_NAME, "tr")
+            for register in registers:
+                data = register.find_elements(By.TAG_NAME, "td")
+                if data[0].get_attribute("textContent") == BAR_CODE:
+                    print(data[-1].find_element(by=By.CLASS_NAME, value="btn-danger").get_attribute("outerHTML"))
+
+                self.__browser.execute_script(
+                    "arguments[0].click();", btn_close
+                )
 
     def __loop_in_credentials(self, credentials: List[WebElement]) -> None:
         for i in range(len(credentials)):
@@ -53,7 +85,12 @@ class SystemCleaner:
             )
             for _ in range(num_pages):
                 users_table = self.__browser.find_elements(By.XPATH, path)
+                users_table.pop(0)
                 self.__loop_in_users(users_table)
+                if num_pages > 1:
+                    self.__wait.until(
+                        EC.element_to_be_clickable((By.LINK_TEXT, ">"))
+                    ).click()
 
             footer = self.__browser.find_element(
                 by=By.CLASS_NAME, value="panel-footer"
@@ -63,8 +100,6 @@ class SystemCleaner:
                 (By.TAG_NAME, "tbody")
             ))
             credentials = table.find_elements(By.TAG_NAME, "tr")
-
-
 
     def __go_to_credentials(self) -> None:
         aside_menu = self.__wait.until(EC.visibility_of_element_located(
@@ -100,6 +135,9 @@ class SystemCleaner:
         self.__browser.find_element(by=By.CLASS_NAME, value="btn").click()
 
         self.__go_to_credentials()
+        os.system("clear")
+        print("Limpeza concluida")
+        self.__browser.quit()
 
 
 def open_browser_session() -> None:
@@ -194,7 +232,7 @@ if __name__ == "__main__":
     # open_browser_session()
     browser_options = Options()
     browser_options.add_argument("disable-notifications")
-    browser_options.add_argument("--start-maximized")
+    browser_options.add_argument("start-maximized")
     browser = webdriver.Chrome(options=browser_options)
     system_cleaner = SystemCleaner(browser)
     system_cleaner.start()
