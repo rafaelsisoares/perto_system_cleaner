@@ -5,9 +5,139 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.remote.webdriver import WebDriver
 from dotenv import load_dotenv
 from time import sleep
+from typing import List
 import os
+
+BAR_CODE = "CÓDIGO DE BARRAS"
+
+
+class SystemCleaner:
+    def __init__(self, browser: WebDriver) -> None:
+        load_dotenv()
+        self.__browser = browser
+        self.__wait = WebDriverWait(self.__browser, timeout=15)
+        self.__url = os.getenv("URL")
+        self.__email = os.getenv("EMAIL")
+        self.__password = os.getenv("PASS")
+        self.__option = os.getenv("OPTION")
+
+    def __loop_in_users(self, table: List[WebElement]) -> None:
+        for user in table:
+            btn_container = user.find_elements(By.TAG_NAME, "td")[-1]
+            edit = btn_container.find_element(
+                By.CLASS_NAME, "btn-primary"
+            )
+            self.__browser.execute_script(
+                "arguments[0].click();", edit
+            )
+            modal = self.__wait.until(EC.visibility_of_element_located(
+                (By.CLASS_NAME, "modal-content")
+            ))
+            btn_close = modal.find_element(By.CLASS_NAME, "btn-warning")
+            try:
+                registers_table = self.__wait.until(EC.visibility_of_element_located(
+                    (By.TAG_NAME, "tbody")
+                ))
+            except TimeoutException:
+                self.__browser.execute_script(
+                    "arguments[0].click();", btn_close
+                )
+                continue
+
+            registers = registers_table.find_elements(By.TAG_NAME, "tr")
+            for register in registers:
+                data = register.find_elements(By.TAG_NAME, "td")
+                if data[0].get_attribute("textContent") == BAR_CODE:
+                    print(data[-1].find_element(by=By.CLASS_NAME, value="btn-danger").get_attribute("outerHTML"))
+
+                self.__browser.execute_script(
+                    "arguments[0].click();", btn_close
+                )
+
+    def __loop_in_credentials(self, credentials: List[WebElement]) -> None:
+        for i in range(len(credentials)):
+            credential = credentials[i]
+            credential.find_element(
+                by=By.CLASS_NAME, value="btn-primary"
+            ).click()
+            self.__wait.until(EC.visibility_of_element_located(
+                (By.LINK_TEXT,  "PORTADORES")
+            )).click()
+
+            select = Select(
+                self.__wait.until(EC.visibility_of_element_located(
+                    (By.NAME, "inputSignatures")
+                ))
+            )
+            select.select_by_visible_text(self.__option)
+            path = "//table[@id='exportable']//tbody//tr"
+            self.__wait.until(
+                lambda d: len(d.find_elements(By.XPATH, path)) > 1
+            )
+            num_pages = int(
+                self.__browser.find_element(
+                    by=By.CLASS_NAME, value="select-page"
+                ).get_attribute("max")
+            )
+            for _ in range(num_pages):
+                users_table = self.__browser.find_elements(By.XPATH, path)
+                users_table.pop(0)
+                self.__loop_in_users(users_table)
+                if num_pages > 1:
+                    self.__wait.until(
+                        EC.element_to_be_clickable((By.LINK_TEXT, ">"))
+                    ).click()
+
+            footer = self.__browser.find_element(
+                by=By.CLASS_NAME, value="panel-footer"
+            )
+            footer.find_element(By.TAG_NAME, "button").click()
+            table = self.__wait.until(EC.visibility_of_element_located(
+                (By.TAG_NAME, "tbody")
+            ))
+            credentials = table.find_elements(By.TAG_NAME, "tr")
+
+    def __go_to_credentials(self) -> None:
+        aside_menu = self.__wait.until(EC.visibility_of_element_located(
+            (By.TAG_NAME, "aside")
+        ))
+
+        aside_menu.find_element(
+            by=By.LINK_TEXT, value="Contr. Credenciados"
+        ).click()
+
+        self.__wait.until(EC.visibility_of_element_located(
+            (By.LINK_TEXT, "Credenciado")
+        )).click()
+
+        credentials = self.__wait.until(EC.visibility_of_element_located(
+            (By.TAG_NAME, "tbody")
+        ))
+        sleep(2)
+        self.__loop_in_credentials(
+            credentials.find_elements(by=By.TAG_NAME, value="tr")
+        )
+
+    def start(self) -> None:
+        self.__browser.get(self.__url)
+        self.__wait.until(EC.visibility_of_element_located(
+            (By.ID, "inputEmail3")
+        )).send_keys(self.__email)
+
+        self.__browser.find_element(
+            by=By.ID, value="inputPassword3"
+        ).send_keys(self.__password)
+
+        self.__browser.find_element(by=By.CLASS_NAME, value="btn").click()
+
+        self.__go_to_credentials()
+        os.system("clear")
+        print("Limpeza concluida")
+        self.__browser.quit()
 
 
 def open_browser_session() -> None:
@@ -99,4 +229,10 @@ def open_browser_session() -> None:
 
 
 if __name__ == "__main__":
-    open_browser_session()
+    # open_browser_session()
+    browser_options = Options()
+    browser_options.add_argument("disable-notifications")
+    browser_options.add_argument("start-maximized")
+    browser = webdriver.Chrome(options=browser_options)
+    system_cleaner = SystemCleaner(browser)
+    system_cleaner.start()
